@@ -1,0 +1,616 @@
+---
+title: "Project 1 NBA"
+output: html_notebook
+---
+```{r}
+"Import reticulate to work between R and python as well as other packages"
+
+library(reticulate)
+use_virtualenv("r-reticulate")
+py_available(TRUE)
+
+
+```
+
+
+```{python}
+import math
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import colors
+from matplotlib.ticker import PercentFormatter
+
+team_Data = pd.read_csv("../Resources/teamData.csv")
+player_Data = pd.read_csv("../Resources/playerData.csv")
+crossReference_Data = pd.read_csv("../Resources/crossReference.csv")
+
+merged_player_data = player_Data.loc[(player_Data['Year'] >= 1986) & (player_Data['Year'] < 2018)]
+
+#merged_player_data = merged_player_data[merged_player_data['Year']==year]
+```
+
+
+```{python}
+selected_columns = ['Player', 'PER', 'TS%', 'ORB%', 'DRB%', 'AST%', 'STL%', 'BLK%', 'TOV%', 'WS', '3P%', '2P%', 'FT%', 'PTS', 'MP']
+selected_columns_with_age = ['Player', 'PER', 'TS%', 'ORB%', 'DRB%', 'AST%', 'STL%', 'BLK%', 'TOV%', 'WS', '3P%', '2P%', 'FT%', 'PTS', 'MP', 'Age']
+
+subset2py = merged_player_data[selected_columns]
+subset_with_age = merged_player_data[selected_columns_with_age]
+  subset2py2 = subset2py
+
+Q1=subset2py2.quantile(0.25)
+Q3=subset2py2.quantile(0.75)
+IQR=Q3-Q1
+
+ #set up quantiles and IQR with age
+Q1a = subset_with_age.quantile(0.25)
+Q3a = subset_with_age.quantile(0.75)
+IQRa = Q3a-Q1a
+
+subset2py_no_outlier = subset2py2[~((subset2py2<(Q1-1.5*IQR)))]
+```
+
+```{python}
+percentile_df = pd.DataFrame()
+for column in selected_columns[1:]:
+  percentile_df[f"{column}_percentile"] = merged_player_data[column].rank(pct = True)
+  percentile_df['Player Name'] = merged_player_data['Player']
+  
+percentile_df = percentile_df.dropna().reset_index()
+
+main_perc_list = []
+
+
+for index in range(0,percentile_df.shape[0]):
+  row_sum = sum(list(percentile_df.iloc[index])[1:-2])
+  row_main_perc = (row_sum/15)
+  main_perc_list.append(row_main_perc)
+
+main_percentile = pd.DataFrame(main_perc_list)
+percentile_df['Main Percentile'] = main_percentile
+[row, cols] = percentile_df.shape
+
+```
+
+
+
+```{python}
+
+```
+
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{r}
+"a list of varibles to intergrate into the regression"
+
+"dependent varible: minutes played"
+"independent varibles: 
+  PER (player efficiency) 
+  TS (true shooting %) 
+  ORB (offensive rebound rate) 
+  DRB (defensive rebound rate)
+  AST (assist %)
+  STL (steal %)
+  BLK (Block %)
+  TOV (turnover %)
+  WS (win shares)
+  3P% (3-Point %)
+  2P% (2-point field goal %)
+  FT% (Free throw %)
+  PTS (points)"
+
+
+```
+
+
+```{python}
+
+
+```
+
+```{python}
+subset2py2['ln_mp'] = np.log(subset2py2['MP'])
+subset2py2['ln_pts'] = np.log(subset2py2['PTS'])
+```
+```{r}
+hist(py$subset2py2$MP)
+hist(py$subset2py2$ln_mp)
+hist(py$subset2py_no_outlier$ln_mp)
+hist(py$subset2py2$PTS)
+hist(py$subset2py2$ln_pts)
+hist(py$subset2py_no_outlier$ln_pts)
+```
+
+
+
+```{python}
+#set up quantiles and IQR
+Q1=subset2py2.quantile(0.25)
+Q3=subset2py2.quantile(0.75)
+IQR=Q3-Q1
+
+#set up quantiles and IQR with age
+Q1a = subset_with_age.quantile(0.25)
+Q3a = subset_with_age.quantile(0.75)
+IQRa = Q3a-Q1a
+
+subset_no_outlier_with_age = subset_with_age[~(subset_with_age<(Q1-1.5*IQR))]
+
+
+
+"To get rid of outliers in subset df"
+subset2py_no_outlier = subset2py2[~((subset2py2<(Q1-1.5*IQR)) | (subset2py2 > (Q3+1.5*IQR))).any(axis=1)]
+subset2py_no_outlier
+
+#plt.hist(subset2py_no_outlier['TS%'], bins= 'auto', color='#0504aa', alpha=0.7, rwidth= 0.85)
+
+#plt.grid(axis='y', alpha=0.75)
+#plt.xlabel('True Shot %')
+#plt.ylabel('Frequency')
+#plt.title('My Very Own Histogram')
+#plt.text(23, 45, r'$\mu=15, b=3$')
+
+
+```
+```{python}
+#modify values in subset with no outliers to reflect Percentile
+percentile_df = pd.DataFrame()
+for column in selected_columns[1:]:
+  #fileter by year
+  percentile_df[f"{column}_percentile"] = merged_player_data[column].rank(pct = True)
+  
+percentile_df['Player Name'] = merged_player_data['Player']
+percentile_df = percentile_df.dropna().reset_index()
+
+
+
+
+```
+
+
+```{python}
+#To make a new variable call main percentage which averages all values in each row
+
+main_perc_list = []
+
+
+for index in range(0,percentile_df.shape[0]):
+  row_sum = sum(list(percentile_df.iloc[index])[1:-2])
+  row_main_perc = (row_sum/15)
+  main_perc_list.append(row_main_perc)
+  
+row_main_perc
+main_percentile = pd.DataFrame(main_perc_list)
+percentile_df['Main Percentile'] = main_percentile
+[row, cols] = percentile_df.shape
+
+
+
+percentile_df['Adjusted Percentile'].value_counts
+
+
+
+
+
+```
+
+
+```{python}
+#Define multiple formulas in order to get the SD and adjusted percentile
+
+#mean : list -> float
+def mean(data):
+  total = sum(data)
+  return total / len(data)
+
+
+#numerator : list -> float
+def numerator(data):
+  SD_mean = mean(data)
+  total = 0 
+  for val in data:
+    total = total + ((val - SD_mean)**2)
+  return total
+
+
+#std : list -> float
+def std(data):
+  num =  numerator(data)
+  den = len(data)
+  return math.sqrt(num/den)
+
+
+#new_formula : list -> list
+def new_formula(data): 
+  percentile = []
+  std_fun = std(data)
+  mean_fun = mean(data)
+  for value in data:
+    adjusted_value = (value - mean_fun)/std_fun
+    percentile.append(adjusted_value)
+  return percentile
+  
+adjusted_percentile_df  = pd.DataFrame(new_formula(percentile_df['Main Percentile']))
+
+print(std(percentile_df['Main Percentile']))
+print(mean(percentile_df['Main Percentile']))
+
+```
+```{python}
+plt.hist(percentile_df['Adjusted Percentile'])
+plt.show()
+```
+
+
+```{python}
+percentile_df['Adjusted Percentile'] = adjusted_percentile_df
+
+list_main_percential_name= ['Main Percentile', 'Player Name']
+list_main_percential_name_df = percentile_df[list_main_percential_name]
+
+```
+
+```{python}
+for values in list_main_percential_name_df['Player Name']:
+  if list_main_percential_name_df['Player Name'].value_counts() > 10
+  print(list_main_percential_name_df['Main Percentile'])
+
+
+#list_main_percential_name_df['Player Name'].value_counts() 
+
+player_name = list_main_percential_name_df.groupby('Player Name')
+mean_main_percentile = player_name['Main Percentile'].mean()
+mean_main_percentile_df = pd.DataFrame({'Player Name': mean_main_percentile.index, 'Main Percentile': mean_main_percentile.values})
+print(mean_main_percentile_df)
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+
+```
+
+
+```{r}
+
+
+```
+
+```{python}
+
+  
+```
+
+```{python}
+selected_columns = ['Player', 'PER', 'TS%', 'ORB%', 'DRB%', 'AST%', 'STL%', 'BLK%', 'TOV%', 'WS', '3P%', '2P%', 'FT%', 'PTS', 'MP']
+selected_columns_with_age = ['Player', 'PER', 'TS%', 'ORB%', 'DRB%', 'AST%', 'STL%', 'BLK%', 'TOV%', 'WS', '3P%', '2P%', 'FT%', 'PTS', 'MP', 'Age']
+
+subset2py = merged_player_data[selected_columns]
+
+```
+
+```{python}
+hp1_subset_list = ['MP', '3P', '2P', 'FT', 'ORB', 'BLK', 'DRB', 'STL']
+
+
+hp1_subset = merged_player_data[hp1_subset_list]
+
+```
+
+```{python}
+Q1h=hp1_subset.quantile(0.25)
+Q3h=hp1_subset.quantile(0.75)
+IQRh=Q3h-Q1h
+
+hp1_subset['ln_mp'] = np.log(hp1_subset['MP'])
+hp1_subset['ln_ft'] = np.log(hp1_subset['FT'])
+hp1_subset['ln_orb'] = np.log(hp1_subset['ORB'])
+hp1_subset['ln_2p'] = np.log(hp1_subset['2P'])
+hp1_subset['ln_3p'] = np.log(hp1_subset['3P'])
+hp1_subset['ln_blk'] = np.log(hp1_subset['BLK'])
+hp1_subset['ln_drb'] = np.log(hp1_subset['DRB'])
+hp1_subset['ln_stl'] = np.log(hp1_subset['STL'])
+
+hp1_subset_no = hp1_subset[~((hp1_subset<(Q1h-1.5*IQRh))) | ((hp1_subset>(Q3h+1.5*IQRh)))]
+
+#hp1_subset_no = hp1_subset_no_na = hp1_subset_no.dropna().reset_index()
+
+hp1_working_df = hp1_subset_no[hp1_subset_no.replace([np.inf, -np.inf], np.nan).notnull().all(axis=1)]
+#hp1_subset_no_na_tf = hp1_subset_no_na.replace([np.inf, -np.inf], np.nan, inplace=True)
+#hp1_subset_no_na_tf.dropna().reset_index()
+```
+
+```{python}
+hp1_working_df.loc[(hp1_working_df!=0).any(axis=1)]
+```
+
+```{r}
+hp1_working_df  <- py$hp1_working_df
+
+reg_hp1 <- lm(hp1_working_df$ln_mp ~ hp1_working_df$ln_blk + hp1_working_df$ln_drb + hp1_working_df$ln_stl + hp1_working_df$ln_ft + hp1_working_df$ln_orb + hp1_working_df$ln_3p + hp1_working_df$ln_2p)
+```
+
+
+```{r}
+summary(reg_hp1)
+summary(reg_no_outlier)
+options(max.print = 1000000)
+options(scipen=999)
+```
+
+```{r}
+hist(py$hp1_subset_no$ln_orb)
+hp1_subset_no <- py$hp1_subset_no
+
+lm(hp1_subset_no$ln_mp ~ hp1_subset_no$ln_2p + hp1_subset_no$ln_3p + hp1_subset_no$ln_orb + hp1_subset_list$ln_ft)
+```
+
+```{r}
+regresion_no_outlier_df <- py$subset2py_no_outlier
+
+hist(subset_no_outlier$PER)
+hist(regresion_no_outlier_df$`TS%`)
+hist(regresion_no_outlier_df$ln_mp)
+```
+```{r}
+reg_no_outlier <- lm(regresion_no_outlier_df$ln_mp ~ regresion_no_outlier_df$ln_pts + regresion_no_outlier_df$PER + regresion_no_outlier_df$`TS%` + regresion_no_outlier_df$`ORB%` + regresion_no_outlier_df$`DRB%` + regresion_no_outlier_df$`AST%` + regresion_no_outlier_df$`STL%` + regresion_no_outlier_df$`BLK%` + regresion_no_outlier_df$`TOV%` + regresion_no_outlier_df$WS + regresion_no_outlier_df$`3P%` + regresion_no_outlier_df$`2P%` + regresion_no_outlier_df$`FT%`) 
+summary(reg_no_outlier)
+
+
+
+```
+```{r}
+lm(regresion_no_outlier_df$ln_mp ~ regresion_no_outlier_df$`TS%`)
+reg_no_outlier
+extract_coef <- summary(reg_no_outlier)$coefficients
+extract_coef[ , 4]
+hist(regresion_no_outlier_df$`TS%`)
+boxplot(regresion_no_outlier_df$`TS%`)
+hist(regresion_no_outlier_df$ln_mp)
+extract_coef_exp <- exp(extract_coef[ , 1])
+adjusted_reg_no_outlier <- ((extract_coef_exp)-1)*100
+adjusted_reg_no_outlier
+```
+
+
+
+
+```{r}
+summary(reg_no_outlier)
+options(max.print = 1000000)
+options(scipen=999)
+
+```
+
+
+```{r}
+#we first exponentiate the coefficient of census to obtain exp(0.00055773)=1.000558. To calculate the percent change, we can subtract one from this number and multiply by 100. Thus, for a one unit increase in the average daily number of patients (census), the average length of stay (length) increases by 0.06 percent.
+(exp(-0.))-1
+-.1381314*100
+#For a one unit increase in minutes played results in a 13% decrease in a players efficiency rating 
+```
+```{r}
+
+```
+
+```{r}
+ln_minutes_played <- log(py$minutes_played)
+hist(py$subset2py_no_outlier$`TS%`)
+hist(py$merged_player_data$`TS%`)
+hist(py$subset2py$PER)
+count(py$subset2py_no_outlier$Player)
+```
+
+```{r}
+subset_no_outlier_with_age <- py$subset_no_outlier_with_age
+
+plot(subset_no_outlier_with_age$Age, subset_no_outlier_with_age$PER, main="Scatterplot Example",
+   xlab="Age", ylab="PER ", pch=19)
+
+
+```
+
+```{r}
+"regression"
+main_reg <- lm(ln_minutes_played ~ py$player_eff + py$true_shot_perc + py$off_reb_rate + py$def_reb_rate + py$assist_perc + py$steal_perc + py$block_perc + py$turnover_perc + py$win_shares + py$three_point_perc + py$two_point_perc + py$free_throw_perc + py$points)
+options(max.print = 1000000)
+options(scipen=999)
+summary(main_reg)
+
+main_reg_no_outlier <- lm()
+
+
+```
+
+```{r}
+merged_player_data <- py$merged_player_data
+merged_player_data$ln_MP <- log(merged_player_data$MP)
+
+out2=with(merged_player_data, 
+          by(merged_player_data, merged_player_data$Year, function(merged_player_data) lm(merged_player_data$ln_MP ~ merged_player_data$PER + merged_player_data$`TS%` + merged_player_data$`ORB%` + merged_player_data$`DRB%` + merged_player_data$`AST%` + merged_player_data$`STL%` + merged_player_data$`BLK%` + merged_player_data$`TOV%` + merged_player_data$WS + merged_player_data$`3P%` + merged_player_data$`2P%` + merged_player_data$`FT%` + merged_player_data$PTS, data=merged_player_data)))
+
+
+out2[1]
+```
+
+```{python}
+raw_data_groupby_year = subset_no_outlier_with_age.groupby['Year']
+
+```
+
+```{r}
+subset_with_age_no_outlier_df <- py$subset_no_outlier_with_age
+
+sd(subset_with_age_no_outlier_df$PTS)
+```
+
+
+
+```{r}
+out3=with(subset_with_age_no_outlier_df,
+          by(subset_with_age_no_outlier_df, subset_with_age_no_outlier_df$Year, function(subset_with_age_no_outlier_df) data=subset_with_age_no_outlier_df))
+
+out3[2]
+
+```
+
+```{python}
+r.
+```
+
+
+```{r}
+all(is.na(subset_no_outlier))
+```
+
+
+```{r}
+outsum <- lapply(out2, summary)
+outsum[10]
+```
+
+
+```{r}
+subsetr <- merged_player_data
+
+```
+
+
+
+
+```{r}
+
+```
+
+
+```{r}
+lm(py$player_eff ~ py$minutes_played)
+plot(py$minutes_played, py$player_eff)
+```
+
+
+```{r}
+
+"a list of varibles to intergrate into the regression"
+"dependent varible: minutes played"
+"independent varibles: 
+  PER (player efficiency) 
+  TS (true shooting %) 
+  ORB (offensive rebound rate) 
+  DRB (defensive rebound rate)
+  AST (assist %)
+  STL (steal %)
+  BLK (Block %)
+  TOV (turnover %)
+  WS (win shares)
+  3P% (3-Point %)
+  2P% (2-point field goal %)
+  FT% (Free throw %)
+  PTS (points)"
+
+
+```
+
+```{r}
+for year in range(1986, 2019):
+  merged_player_data = player_Data.loc[(player_Data['Year'] >= 1986) & (player_Data['Year'] < 2018)]
+
+  merged_player_data = merged_player_data[merged_player_data['Year']==year]
+
+  selected_columns = ['Player', 'PER', 'TS%', 'ORB%', 'DRB%', 'AST%', 'STL%', 'BLK%', 'TOV%', 'WS', '3P%', '2P%', 'FT%', 'PTS', 'MP']
+  selected_columns_with_age = ['Player', 'PER', 'TS%', 'ORB%', 'DRB%', 'AST%', 'STL%', 'BLK%', 'TOV%', 'WS', '3P%', '2P%', 'FT%', 'PTS', 'MP', 'Age']
+
+  subset2py = merged_player_data[selected_columns]
+  subset_with_age = merged_player_data[selected_columns_with_age]
+  subset2py2 = subset2py
+
+  Q1=subset2py2.quantile(0.25)
+  Q3=subset2py2.quantile(0.75)
+  IQR=Q3-Q1
+
+    #set up quantiles and IQR with age
+  Q1a = subset_with_age.quantile(0.25)
+  Q3a = subset_with_age.quantile(0.75)
+  IQRa = Q3a-Q1a
+
+  subset2py_no_outlier = subset2py2[~((subset2py2<(Q1-1.5*IQR)))]
+
+  percentile_df = pd.DataFrame()
+  for column in selected_columns[1:]:
+    percentile_df[f"{column}_percentile"] = merged_player_data[column].rank(pct = True)
+    percentile_df['Player Name'] = merged_player_data['Player']
+  
+  percentile_df = percentile_df.dropna().reset_index()
+
+  main_perc_list = []
+
+
+  for index in range(0,percentile_df.shape[0]):
+    row_sum = sum(list(percentile_df.iloc[index])[1:-2])
+    row_main_perc = (row_sum/15)
+    main_perc_list.append(row_main_perc)
+    
+  main_percentile = pd.DataFrame(main_perc_list)
+  percentile_df['Main Percentile'] = main_percentile
+  [row, cols] = percentile_df.shape
+
+  def mean(data):
+    total = sum(data)
+    return total / len(data)
+
+
+    #numerator : list -> float
+  def numerator(data):
+    SD_mean = mean(data)
+    total = 0 
+    for val in data:
+      total = total + ((val - SD_mean)**2)
+    return total
+
+
+    #std : list -> float
+  def std(data):
+    num =  numerator(data)
+    den = len(data)
+    return math.sqrt(num/den)
+
+
+    #new_formula : list -> list
+  def new_formula(data): 
+    percentile = []
+    std_fun = std(data)
+    mean_fun = mean(data)
+    for value in data:
+      adjusted_value = (value - mean_fun)/std_fun
+      percentile.append(adjusted_value)
+    return percentile
+    
+  adjusted_percentile_df  = pd.DataFrame(new_formula(percentile_df['Main Percentile']))
+
+  
+
+  percentile_df['Adjusted Percentile'] = adjusted_percentile_df
+
+    
+  percentile_df.to_csv(f'../Resources/yearly_csvs/{year}_data.csv')
+```
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
