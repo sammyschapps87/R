@@ -1,0 +1,127 @@
+---
+title: "starting_analysis"
+author: "Samuel Schappel"
+date: "5/11/2022"
+output: html_document
+---
+
+```{r}
+install.packages("tidyverse")
+install.packages("ggplot2")
+install.packages("readxl")
+```
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+library(reshape)
+library(RColorBrewer)
+library(scales)
+library(ggrepel)
+```
+
+
+
+
+```{r pressure, echo=FALSE}
+## Reading in data
+
+ill_cancer_data <- read.csv('data/cancer_rates.csv')
+zip_codes_df <- read.csv('data/lake_county_zip_codes.csv')
+```
+
+```{r}
+
+```
+
+```{r}
+### Renaming column
+zip_codes_df$ZIP <-zip_codes_df$ï..ZIP
+
+## Dropping old column
+drop  <- subset(zip_codes_df, select = ("ï..ZIP"))
+zip_codes_df <- zip_codes_df[,!(names(zip_codes_df) %in% drop)]
+
+## Merging data sets 
+complete_df <- merge(ill_cancer_data, zip_codes_df, by="ZIP")
+
+## creating percent of population with cancer variable 
+complete_df$percent_of_pop_w_cancer <- complete_df$All_Cancer / complete_df$Population
+
+## Creating Labels variable containing percent values for population / all_cancer for pie chart labeling 
+complete_df$labels = percent(round(complete_df$percent_of_pop_w_cancer, digits = 2))
+
+## Creating Data subset for data melting 
+cancer_type_subset <- complete_df[c("Lung_Bronc", "Breast_Can", "Prostate_C", "Urinary_Sy", "Town")]
+
+## Melting data
+melted_df <- melt(cancer_type_subset, id=c("Town"))
+```
+
+```{r}
+## Bar graph for all cancer in all towns
+zip_code_bar <- ggplot(data = complete_df, aes(x = complete_df$Town, y = complete_df$All_Cancer)) + 
+  geom_bar(stat = "identity", width = 0.75, color = "blue", fill = "white")
+  geom_text(aes(label = "All Cancer"), vjust= -0.3, size = 3.5)
+
+zip_code_bar + coord_flip() + labs(x = "All Cancer", y = "Towns in Lakeview County Illinois", title = "Population with Cancer") + theme(plot.title = element_text(hjust = .5))
+```
+
+
+```{r}
+## Bar graph for Cancer by type in all towns 
+cancer_by_type_bar <- ggplot(data = melted_df, aes(x =melted_df$Town, y = melted_df$value, fill = melted_df$variable)) +
+  geom_bar(stat = "identity", width = .75 )
+  geom_text(aes(label = melted_df$value), vjust= 1.6, color = "white", position = position_dodge(0.9), size = 3.5) 
+
+cancer_by_type_bar + scale_fill_brewer(palette = "Paired") + coord_flip() + theme_light() + labs(x = "People with Cancer", y = "Towns in Lakeview County Illinois", title = "Population with Cancer by Type") + theme(plot.title = element_text(hjust = .5))
+```
+
+
+```{r}
+hist(ill_cancer_data$Lung_Bronc)
+hist(ill_cancer_data$Breast_Can)
+hist(ill_cancer_data$Prostate_C)
+hist(ill_cancer_data$Urinary_Sy)
+hist(complete_df$percent_of_pop_w_cancer)
+
+```
+
+```{r}
+### Pie chart for percentages of people with cancer with regard to population 
+
+## count of towns 
+town_count = length(unique(complete_df$Town)) + 1
+
+## choosing a color palette 
+obtain_palette <- colorRampPalette(brewer.pal (9, "Set1"))
+
+## subset data for putting percentages outside of the chart
+df2 <- complete_df %>% 
+  mutate(csum = rev(cumsum(rev(complete_df$percent_of_pop_w_cancer))), 
+         pos = complete_df$percent_of_pop_w_cancer/2 + lead(csum, 1),
+         pos = if_else(is.na(pos), complete_df$percent_of_pop_w_cancer/2, pos))
+
+## Making bar chart to base pie off
+bp <- ggplot(complete_df, aes(x = "", y=complete_df$percent_of_pop_w_cancer, fill =  complete_df$Town)) + 
+  geom_bar(width = 1, stat = "identity", color = "black") + 
+  scale_fill_manual(values = obtain_palette(town_count)) +
+  geom_label_repel(data = df2, aes(y = df2$pos, label = paste(df2$labels)), size = 2, nudge_x = .75, show.legend = FALSE) 
+
+## create pie
+pie <- bp + coord_polar("y", start = 0) + labs(x = "Percent of Population with Cancer", y =  "Towns in Lakeview County Illinois", title = "% of Population with Cancer by Town") + theme(plot.title = element_text(hjust = .5))
+
+
+## color pie
+pie
+```
+```{r}
+ggplot(complete_df, aes(x = complete_df$All_Cancer, y = complete_df$SHAPE_Area)) + geom_point(color = "red") + geom_smooth(method = loess) + labs(x = "Pop with Cancer ", y =  "Shape Area", title = "Cancer Patients vs Shape Area") + theme(plot.title = element_text(hjust = .5))
+
+ggplot(complete_df, aes(x = complete_df$All_Cancer, y = complete_df$SHAPE_Length)) + geom_point(color = "blue") + geom_smooth(method = loess)
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
